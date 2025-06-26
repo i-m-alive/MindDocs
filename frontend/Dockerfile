@@ -15,8 +15,6 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # 2️⃣  Install deps reproducibly
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --legacy-peer-deps
 
 # 3️⃣  Copy source & build CRA (→ /app/build)
 COPY . .
