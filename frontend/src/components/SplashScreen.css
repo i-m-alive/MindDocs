@@ -1,0 +1,101 @@
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+/* 🧠 LOGO: Circular, glow, and shine */
+.splash-logo {
+  height: 100px;
+  width: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: white;
+  position: relative;
+  animation: pulse 1.4s ease-in-out infinite, scaleIn 0.6s ease-out;
+  box-shadow: 0 0 25px rgba(127, 0, 255, 0.4);
+}
+
+/* ✨ Shine animation using pseudo-element */
+.splash-logo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg);
+  animation: shine 2s infinite;
+}
+
+/* 📝 TEXT under logo */
+.splash-text {
+  margin-top: 1.2rem;
+  color: var(--text-color);
+  font-weight: bold;
+  font-size: 1.6rem;
+  opacity: 0;
+  animation: fadeInUp 0.7s ease 0.6s forwards;
+}
+
+/* 🌟 Glow pulse */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 rgba(127, 0, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 28px 8px rgba(127, 0, 255, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(127, 0, 255, 0.0);
+  }
+}
+
+/* 📸 Logo zoom-in effect */
+@keyframes scaleIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ✨ Shine swipe across */
+@keyframes shine {
+  0% {
+    left: -75%;
+  }
+  100% {
+    left: 125%;
+  }
+}
+
+/* ⬆️ Fade-up for text */
+@keyframes fadeInUp {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

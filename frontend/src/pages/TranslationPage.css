@@ -1,0 +1,5 @@
+form select,
+form label,
+form button {
+  color: var(--text-color);
+}

@@ -1,0 +1,58 @@
+###############################################################################
+#  DocuSense AI · full-stack Compose (compatible with Compose v2 & v3)        #
+###############################################################################
+
+
+#########################
+#  shared bridge net    #
+#########################
+networks:
+  docai-net:
+    driver: bridge
+
+#########################
+#  service definitions  #
+#########################
+services:
+  ###############################################################
+  #  FastAPI back-end  –  Python 3.11 + LangChain + FAISS       #
+  ###############################################################
+  backend:
+    container_name: docai-backend
+    build:
+      context: ./backend            # ⬅️ backend/Dockerfile lives here
+      dockerfile: Dockerfile
+    image: docai-backend:latest
+    env_file: .env                  # ← never commit secrets
+    volumes:
+      - ./backend:/app              # 🔥 dev hot-reload (comment in prod)
+    ports:
+      - "8000:8000"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    networks: [docai-net]
+
+  ###############################################################
+  #  React front-end – static build served by `serve`           #
+  ###############################################################
+  frontend:
+    container_name: docai-frontend
+    build:
+      context: ./frontend           # ⬅️ frontend/Dockerfile (multi-stage)
+      #dockerfile: Dockerfile
+    image: docai-frontend:latest
+    stdin_open: true                # keep STDIN open so `serve` logs nicely
+    #volumes:
+      #- ./frontend:/app             # 🔥 dev hot-reload (comment in prod)
+    ports:
+      - "3000:3000"
+    restart: on-failure
+    depends_on:                     # wait until the API says “healthy”
+      backend:
+        condition: service_healthy
+    networks: [docai-net]

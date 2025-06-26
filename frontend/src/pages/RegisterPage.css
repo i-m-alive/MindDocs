@@ -1,0 +1,65 @@
+.register-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  transition: background-color 0.3s ease;
+}
+
+.register-wrapper.light {
+  background-color: #f5f7fa;
+}
+
+.register-wrapper.dark {
+  background-color: #0e0e1a;
+}
+
+.register-card {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  width: 100%;
+  max-width: 500px;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.register-card input,
+.register-card select {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid #ccc;
+  transition: border 0.3s;
+}
+
+.register-card input:focus,
+.register-card select:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: none;
+}
+
+.btn-theme {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.65rem;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+.btn-theme:hover {
+  background: var(--secondary-color);
+  color: #fff;
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

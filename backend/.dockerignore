@@ -1,0 +1,40 @@
+###############################################################################
+#  BACK-END  – Python / FastAPI                                               #
+###############################################################################
+
+# ── VCS & editor cruft ────────────────────────────────────────────────────────
+.git
+.gitignore
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ── Docker/build files that the engine already knows how to find ─────────────
+.env*                 # secrets never go into the build context
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# ── Python byte-code & test artefacts ────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+coverage.*
+htmlcov/
+
+# ── Virtual-env & wheels ─────────────────────────────────────────────────────
+venv*/
+*.whl
+
+# ── Data / cache / logs ──────────────────────────────────────────────────────
+*.log
+*.sqlite*
+*.db
+instance/
+build/
+dist/

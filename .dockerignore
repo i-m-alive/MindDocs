@@ -1,0 +1,17 @@
+# Generic
+.git
+node_modules
+venv/
+backend/venv/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+npm-debug.log
+
+
+
+# Back-end
+backend/.pytest_cache
+backend/instance
+backend/.env
