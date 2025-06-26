@@ -37,8 +37,8 @@ RUN set -eux; \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # upgrade pip once (cached)
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip install --upgrade pip
+RUN python -m pip install --upgrade pip && \
+    python -m pip install --no-cache-dir --retries 10 -r requirements.txt
 
 ######################## 2️⃣ DEPS ─────────────────────────────────────────────
 FROM base AS deps
