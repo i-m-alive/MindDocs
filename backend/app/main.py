@@ -34,17 +34,18 @@ app = FastAPI(
 # ────────────────────────────────────────────────────────────────
 # CORS  🔄  (only this block changed)
 # ----------------------------------------------------------------
-frontend_origin = os.getenv("ORIGIN", "http://localhost:3000")
+# ✅ FIXED: robust CORS for local + Azure frontends
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        frontend_origin,
-        "https://*.azurestaticapps.net"      # SWA wildcard
+        "http://localhost:3000",  # For local dev
+        "https://minddocs-web.ambitiousfield-7c7af711.eastus2.azurecontainerapps.io"  # Azure frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # ────────────────────────────────────────────────────────────────
 
 # Routers
