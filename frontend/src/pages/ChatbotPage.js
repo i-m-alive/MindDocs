@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { getToken } from '../utils/auth';
 import './ChatbotPage.css';
 import logo from '../assets/logo.png';
@@ -11,22 +11,72 @@ function ChatbotPage() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [streaming, setStreaming] = useState(false);
   const [aiTyping, setAiTyping] = useState(false);
+  const [speakingMsgIndex, setSpeakingMsgIndex] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   const messagesEndRef = useRef(null);
   const chatWindowRef = useRef(null);
+  const utteranceRef = useRef(null);
 
-  // 🔁 Fetch documents from backend
+  // 🔊 TTS: Play message
+  const playText = (text, index) => {
+    if (!window.speechSynthesis) {
+      alert("Your browser does not support speech synthesis.");
+      return;
+    }
+
+    stopSpeech(); // Always stop current speech first
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 1;
+    utterance.pitch = 1;
+
+    utterance.onend = () => {
+      setSpeakingMsgIndex(null);
+      setIsPaused(false);
+    };
+
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    setSpeakingMsgIndex(index);
+    setIsPaused(false);
+  };
+
+  // ⏸️ Pause TTS
+  const pauseSpeech = () => {
+    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+      window.speechSynthesis.pause();
+      setIsPaused(true);
+    }
+  };
+
+  // 🔁 Resume TTS
+  const resumeSpeech = () => {
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setIsPaused(false);
+    }
+  };
+
+  // ⏹️ Stop TTS
+  const stopSpeech = () => {
+    window.speechSynthesis.cancel();
+    setSpeakingMsgIndex(null);
+    setIsPaused(false);
+  };
+
+  // 📄 Fetch user documents
   const fetchDocuments = useCallback(async () => {
     try {
-      const res = await axios.get('http://localhost:8000/chatbot/documents/mydocs', {
-        headers: { Authorization: `Bearer ${getToken()}` }
+      const res = await api.get('/chatbot/documents/mydocs', {
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
       setDocuments(res.data);
     } catch (err) {
       console.error('Error fetching documents:', err);
-      setError('Failed to load your documents. Try re-logging in.');
+      setError('Failed to load your documents. Please re-login.');
     }
   }, []);
 
@@ -34,21 +84,28 @@ function ChatbotPage() {
     fetchDocuments();
   }, [fetchDocuments]);
 
-  // 📜 Scroll to latest message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatWindowRef.current) {
+      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
+    }
   }, [messages, aiTyping]);
 
-  // 📜 Fetch previous chat history for selected doc
+  useEffect(() => {
+    window.speechSynthesis.cancel(); // Cancel speech when messages update
+  }, [messages]);
+
+  // 💬 Fetch past chat history
   const fetchChatHistory = async (docName) => {
     try {
-      const res = await axios.get(`http://localhost:8000/chatbot/history/${docName}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
+      const res = await api.get(`/chatbot/history/${docName}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
+
       const chatMsgs = res.data.flatMap(item => [
         { sender: 'user', text: item.question },
-        { sender: 'ai', text: item.answer }
+        { sender: 'ai', text: item.answer },
       ]);
+
       setMessages(chatMsgs);
     } catch (err) {
       console.error('Error loading chat history:', err);
@@ -57,26 +114,12 @@ function ChatbotPage() {
   };
 
   const handleDocSelect = (e) => {
-    const value = e.target.value;
-    if (streaming) {
-      setSelectedDocs([value]);
-      setMessages([]);
-    } else {
-      const selected = Array.from(e.target.selectedOptions, opt => opt.value);
-      setSelectedDocs(selected);
-      if (selected.length === 1) fetchChatHistory(selected[0]);
-      else setMessages([]);
+    const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+    setSelectedDocs(selected);
+    setMessages([]);
+    if (selected.length === 1) {
+      fetchChatHistory(selected[0]);
     }
-  };
-
-  const handleStreamingToggle = () => {
-    setStreaming(prev => {
-      const next = !prev;
-      const lastSelected = selectedDocs[0] || '';
-      setSelectedDocs(lastSelected ? [lastSelected] : []);
-      setMessages([]);
-      return next;
-    });
   };
 
   const handleSubmit = async (e) => {
@@ -86,73 +129,30 @@ function ChatbotPage() {
     setAiTyping(true);
 
     const docName = selectedDocs[0];
-    if (!question.trim() || !docName) {
+    const trimmedQuestion = question.trim();
+
+    if (!trimmedQuestion || !docName) {
       setError('Please enter a question and select a document.');
       setLoading(false);
       setAiTyping(false);
       return;
     }
 
-    setMessages(prev => [...prev, { sender: 'user', text: question }]);
+    setMessages(prev => [...prev, { sender: 'user', text: trimmedQuestion }]);
+
+    const formData = new FormData();
+    formData.append('question', trimmedQuestion);
+    selectedDocs.forEach(doc => formData.append('doc_names', doc));
 
     try {
-      const formData = new FormData();
-      formData.append('question', question);
+      const res = await api.post('/chatbot/chat', formData, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
 
-      if (streaming) {
-        formData.append('doc_name', docName);
-
-        const response = await fetch('http://localhost:8000/chatbot/chat/stream', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${getToken()}` },
-          body: formData
-        });
-
-        if (!response.ok || !response.body) throw new Error('Streaming failed');
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let fullResponse = '';
-        let indexToUpdate = null;
-
-        // 💬 Insert empty AI message first
-        setMessages(prev => {
-          indexToUpdate = prev.length;
-          return [...prev, { sender: 'ai', text: '' }];
-        });
-
-        // 🌀 Read and stream chunks
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          console.log("📦 Chunk:", chunk); 
-          fullResponse += chunk;
-
-          setMessages(prev => {
-            const updated = [...prev];
-            if (updated[indexToUpdate]) {
-              updated[indexToUpdate] = { ...updated[indexToUpdate], text: fullResponse };
-            }
-            return updated;
-          });
-        }
-
-      } else {
-        selectedDocs.forEach(doc => formData.append('doc_names', doc));
-        const res = await axios.post('http://localhost:8000/chatbot/chat', formData, {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-        setMessages(prev => [...prev, { sender: 'ai', text: res.data.reply }]);
-      }
-
+      setMessages(prev => [...prev, { sender: 'ai', text: res.data.reply }]);
     } catch (err) {
       console.error('Chat error:', err);
-      setError('❌ Chatbot failed to respond.');
+      setError('Chatbot failed to respond.');
     } finally {
       setLoading(false);
       setAiTyping(false);
@@ -170,13 +170,13 @@ function ChatbotPage() {
       {error && <div className="alert alert-danger">{error}</div>}
 
       <div className="mb-3">
-        <label><strong>Select Document{streaming ? '' : '(s)'}:</strong></label>
+        <label><strong>Select Document(s):</strong></label>
         <select
-          multiple={!streaming}
-          size={streaming ? 1 : Math.min(5, documents.length)}
+          multiple
+          size={Math.min(5, documents.length)}
           className="form-control"
           onChange={handleDocSelect}
-          value={streaming ? selectedDocs[0] || '' : selectedDocs}
+          value={selectedDocs}
         >
           {documents.map((doc) => (
             <option key={doc.id} value={doc.name}>
@@ -185,21 +185,8 @@ function ChatbotPage() {
           ))}
         </select>
         <small className="form-text text-muted">
-          {streaming ? 'Only one document allowed in streaming mode.' : 'You can select multiple documents.'}
+          You can select multiple documents.
         </small>
-      </div>
-
-      <div className="form-check form-switch mb-3">
-        <input
-          className="form-check-input"
-          type="checkbox"
-          id="streamToggle"
-          checked={streaming}
-          onChange={handleStreamingToggle}
-        />
-        <label className="form-check-label" htmlFor="streamToggle">
-          Enable Streaming Chat
-        </label>
       </div>
 
       <div className="chat-window" ref={chatWindowRef}>
@@ -207,12 +194,44 @@ function ChatbotPage() {
           {messages.map((msg, idx) => (
             <div key={idx} className={`chat-message ${msg.sender}`}>
               <div className="d-flex align-items-start gap-2">
-                {msg.sender === 'ai' && <img src={logo} alt="AI" className="chat-logo" />}
+                {msg.sender === 'ai' && (
+                  <img src={logo} alt="AI" className="chat-logo" />
+                )}
                 <span>{msg.text}</span>
+                {msg.sender === 'ai' && msg.text && (
+                  <div className="d-flex gap-1 align-items-center">
+                    <button
+                      className="speaker-btn"
+                      onClick={() => playText(msg.text, idx)}
+                      title="Play"
+                    >▶️</button>
+
+                    {speakingMsgIndex === idx && (
+                      <>
+                        <button
+                          className="speaker-btn"
+                          onClick={pauseSpeech}
+                          title="Pause"
+                        >⏸️</button>
+                        <button
+                          className="speaker-btn"
+                          onClick={resumeSpeech}
+                          title="Resume"
+                          disabled={!isPaused}
+                        >🔁</button>
+                        <button
+                          className="speaker-btn"
+                          onClick={stopSpeech}
+                          title="Stop"
+                        >⏹️</button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
-          <div ref={messagesEndRef} />
+
           {aiTyping && (
             <div className="chat-message ai">
               <div className="typing-indicator">
@@ -222,6 +241,8 @@ function ChatbotPage() {
               </div>
             </div>
           )}
+
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
