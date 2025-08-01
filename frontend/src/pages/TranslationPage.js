@@ -1,8 +1,12 @@
+// ✅ React Component: Enhanced TranslationPage.js
+// Features: Removed section headers + Added PDF download
+
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { getToken } from '../utils/auth';
-import logo from '../assets/logo.png'; // 🧠 MindDocs AI logo
-import './TranslationPage.css'; // 💄 Optional for additional styling
+import jsPDF from 'jspdf';
+import logo from '../assets/logo.png';
+import './TranslationPage.css';
 
 function TranslationPage() {
   const [documents, setDocuments] = useState([]);
@@ -13,11 +17,8 @@ function TranslationPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const supportedLanguages = [
-    "English", "Hindi", "French", "German", "Spanish", "Chinese", "Arabic"
-  ];
+  const supportedLanguages = ["English", "Hindi", "French", "German", "Spanish", "Chinese", "Arabic"];
 
-  // 📥 Load user's uploaded documents
   useEffect(() => {
     const fetchDocs = async () => {
       try {
@@ -33,7 +34,6 @@ function TranslationPage() {
     fetchDocs();
   }, []);
 
-  // 🌐 Submit translation request
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -59,7 +59,9 @@ function TranslationPage() {
         }
       });
 
-      setTranslationResult(res.data);
+      // 🪄 Strip section headers before setting result
+      const cleaned = res.data.translation.replace(/--- Section \d+ ---/g, '').trim();
+      setTranslationResult({ ...res.data, translation: cleaned });
       setSuccessMsg(`✅ Translation completed for "${res.data.doc_name}"`);
     } catch (err) {
       console.error('Translation error:', err);
@@ -70,6 +72,18 @@ function TranslationPage() {
     }
   };
 
+  const handleDownloadPDF = () => {
+    if (!translationResult) return;
+
+    const doc = new jsPDF();
+    const lines = doc.splitTextToSize(translationResult.translation, 180);
+    doc.setFont('Helvetica');
+    doc.setFontSize(12);
+    doc.text(`📄 Translation of: ${translationResult.doc_name}`, 10, 10);
+    doc.text(lines, 10, 20);
+    doc.save(`${translationResult.doc_name}_${translationResult.language}_Translation.pdf`);
+  };
+
   return (
     <div className="container py-5" style={{ maxWidth: '850px' }}>
       <h2 className="mb-4 fw-bold d-flex align-items-center gap-3">
@@ -77,11 +91,9 @@ function TranslationPage() {
         <span className="text-gradient">Document Translation</span>
       </h2>
 
-      {/* ✅ Alert messages */}
       {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
-      {/* ✅ Translated text preview */}
       {translationResult && (
         <div className="mb-5">
           <h5 className="mb-3">📝 Translated Output</h5>
@@ -97,54 +109,32 @@ function TranslationPage() {
             }}
           >
             {translationResult.translation}
-
           </div>
+          <button onClick={handleDownloadPDF} className="btn btn-outline-primary mt-3">
+            ⬇️ Download PDF
+          </button>
         </div>
       )}
 
-      {/* ✅ Translation form */}
-      <form
-        onSubmit={handleSubmit}
-        className="p-4 rounded border shadow-sm mb-5"
-        style={{
-          backgroundColor: 'var(--bg-color)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          color: 'var(--text-color)'
-        }}
-      >
-        <h5 className="mb-4 fw-semibold" style={{ color: 'var(--text-color)' }}>
-          Translate Your Uploaded Document
-        </h5>
+      {/* Translation Form */}
+      <form onSubmit={handleSubmit} className="p-4 rounded border shadow-sm mb-5"
+        style={{ backgroundColor: 'var(--bg-color)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-color)' }}>
+
+        <h5 className="mb-4 fw-semibold">Translate Your Uploaded Document</h5>
 
         <div className="mb-3">
-          <label className="form-label fw-semibold" style={{ color: 'var(--text-color)' }}>
-            📄 Select a Document:
-          </label>
-          <select
-            className="form-select"
-            value={selectedDoc}
-            onChange={(e) => setSelectedDoc(e.target.value)}
-            required
-          >
+          <label className="form-label fw-semibold">📄 Select a Document:</label>
+          <select className="form-select" value={selectedDoc} onChange={(e) => setSelectedDoc(e.target.value)} required>
             <option value="">-- Choose from uploaded documents --</option>
             {documents.map((doc) => (
-              <option key={doc.id} value={doc.name}>
-                {doc.name} ({doc.domain})
-              </option>
+              <option key={doc.id} value={doc.name}>{doc.name} ({doc.domain})</option>
             ))}
           </select>
         </div>
 
         <div className="mb-4">
-          <label className="form-label fw-semibold" style={{ color: 'var(--text-color)' }}>
-            🌍 Target Language:
-          </label>
-          <select
-            className="form-select"
-            value={targetLang}
-            onChange={(e) => setTargetLang(e.target.value)}
-            required
-          >
+          <label className="form-label fw-semibold">🌍 Target Language:</label>
+          <select className="form-select" value={targetLang} onChange={(e) => setTargetLang(e.target.value)} required>
             <option value="">-- Select language --</option>
             {supportedLanguages.map((lang) => (
               <option key={lang} value={lang}>{lang}</option>
@@ -152,25 +142,13 @@ function TranslationPage() {
           </select>
         </div>
 
-        <button
-          type="submit"
-          className="btn btn-primary w-100 fw-bold"
-          disabled={loading}
-        >
+        <button type="submit" className="btn btn-primary w-100 fw-bold" disabled={loading}>
           {loading ? 'Translating...' : 'Translate'}
         </button>
       </form>
 
-      {/* ✅ Translation Metadata */}
       {translationResult && (
-        <div
-          className="p-4 rounded"
-          style={{
-            backgroundColor: 'var(--bg-color)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'var(--text-color)'
-          }}
-        >
+        <div className="p-4 rounded" style={{ backgroundColor: 'var(--bg-color)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-color)' }}>
           <h5 className="mb-3">📄 Translation Details</h5>
           <p><strong>Document:</strong> {translationResult.doc_name}</p>
           <p><strong>Domain:</strong> {translationResult.domain}</p>
