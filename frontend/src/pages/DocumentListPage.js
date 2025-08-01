@@ -1,39 +1,39 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Container, Table, Button, Spinner } from "react-bootstrap";
+import api from '../services/api';                               // ✅ Centralized axios instance
+import { getToken } from "../utils/auth";           // ✅ Consistent token access
 
 const DocumentListPage = () => {
-  const [documents, setDocuments] = useState([]);     // Stores documents from backend
-  const [loading, setLoading] = useState(true);       // Spinner loading state
-  const navigate = useNavigate();                     // For route redirection
-  const token = localStorage.getItem("token");        // JWT token from local storage
+  const [documents, setDocuments] = useState([]);   // 🧠 Stores document data from API
+  const [loading, setLoading] = useState(true);     // ⏳ Controls spinner visibility
+  const navigate = useNavigate();                   // 🔁 Used for route redirection
 
-  // ✅ Fetch user's uploaded documents
+  // 🚀 Fetch user-uploaded documents on mount
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/documents/me", {
+        const res = await api.get("/documents/me", {
           headers: {
-            Authorization: `Bearer ${token}`,        // Include token in header
+            Authorization: `Bearer ${getToken()}`,  // 🔐 Attach JWT token
           },
         });
-        setDocuments(res.data);                      // Update state with document list
+        setDocuments(res.data);                     // 🗂️ Update state with fetched documents
       } catch (err) {
-        console.error("Failed to fetch documents:", err);
+        console.error("❌ Failed to fetch documents:", err);
         alert("Error loading documents. Please login again.");
-        navigate("/login");                          // Redirect to login if error
+        navigate("/login");                         // ⛔ Redirect on auth or fetch error
       } finally {
-        setLoading(false);                           // Hide spinner
+        setLoading(false);                          // ✅ Hide spinner regardless of outcome
       }
     };
 
     fetchDocuments();
-  }, [navigate, token]);
+  }, [navigate]);
 
-  // ✅ Handler to redirect user to action page (chat, summarize, etc.)
+  // 🧭 Route to document-specific action (chat, summary, etc.)
   const handleAction = (docId, action) => {
-    navigate(`/${action}?doc_id=${docId}`);
+    navigate(`/${action}?doc_id=${docId}`);         // 📎 Pass doc_id as query param
   };
 
   return (
@@ -41,11 +41,11 @@ const DocumentListPage = () => {
       <h2 className="mb-4">Your Uploaded Documents</h2>
 
       {loading ? (
-        <Spinner animation="border" />
+        <Spinner animation="border" />              // ⏳ Show while loading
       ) : documents.length === 0 ? (
-        <p>No documents found. Please upload some files.</p>
+        <p>No documents found. Please upload some files.</p>  // 📭 No docs available
       ) : (
-        <Table striped bordered hover>
+        <Table striped bordered hover responsive>   {/* 📄 Document Table */}
           <thead>
             <tr>
               <th>Name</th>
@@ -63,7 +63,11 @@ const DocumentListPage = () => {
                 <td>{new Date(doc.created_at).toLocaleString()}</td>
                 <td>
                   {doc.blob_url ? (
-                    <a href={doc.blob_url} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={doc.blob_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       View PDF
                     </a>
                   ) : (
@@ -71,6 +75,7 @@ const DocumentListPage = () => {
                   )}
                 </td>
                 <td>
+                  {/* 🎯 Each button redirects to corresponding action page */}
                   <Button
                     variant="primary"
                     size="sm"
