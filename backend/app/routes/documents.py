@@ -3,7 +3,7 @@ from typing import List
 from sqlalchemy.orm import Session
 import os, shutil, uuid
 from azure.storage.blob import BlobServiceClient, ContentSettings
-
+import logging
 from app.utils.database import get_db
 from app.models.documents import Document
 from app.auth.models import User
@@ -86,7 +86,7 @@ async def upload_documents(
         "user": current_user.username
     }
 
-
+logger = logging.getLogger(__name__)
 @router.get("/documents/me")
 def get_user_documents(
     db: Session = Depends(get_db),
@@ -95,20 +95,27 @@ def get_user_documents(
     """
     Fetch all documents uploaded by the current logged-in user.
     Returns metadata for document list and UI table.
-
-    Returns:
-        List[dict]: Document list with blob and local path.
     """
-    docs = db.query(Document).filter_by(user_id=current_user.id).order_by(Document.created_at.desc()).all()
+    try:
+        if not current_user or not current_user.id:
+            logger.error("🔒 No valid user in /documents/me route")
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
-    return [
-        {
-            "id": doc.id,
-            "name": doc.name,
-            "domain": doc.domain,
-            "filename": doc.filename,     # local path (for admin use)
-            "blob_url": doc.blob_url,     # for Azure download/view
-            "created_at": doc.created_at.isoformat()
-        }
-        for doc in docs
-    ]
+        docs = db.query(Document).filter_by(user_id=current_user.id).order_by(Document.created_at.desc()).all()
+        logger.info(f"📄 Found {len(docs)} documents for user_id={current_user.id}")
+
+        return [
+            {
+                "id": doc.id,
+                "name": doc.name,
+                "domain": doc.domain,
+                "filename": doc.filename,
+                "blob_url": doc.blob_url,
+                "created_at": doc.created_at.isoformat() if doc.created_at else None
+            }
+            for doc in docs
+        ]
+
+    except Exception as e:
+        logger.exception(f"❌ Error fetching documents for user {getattr(current_user, 'id', 'unknown')}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch documents")
