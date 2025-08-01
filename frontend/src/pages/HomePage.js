@@ -3,6 +3,8 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getToken } from '../utils/auth';
 import logo from '../assets/logo.png';
+import aiRobot from '../assets/lottie/AI Robot.json';          // ✅ Import Lottie animation
+import LottieWrapper from '../components/LottieWrapper';       // ✅ Import wrapper
 import './HomePage.css';
 
 function HomePage() {
@@ -56,6 +58,12 @@ function HomePage() {
 
   return (
     <div className="container py-5">
+
+      {/* ✅ Lottie Animation */}
+      <div className="text-center mb-4">
+        <LottieWrapper animationData={aiRobot} height={280} />
+      </div>
+
       <div className="text-center mb-5">
         <h1 className="display-5 fw-bold d-flex justify-content-center align-items-center gap-2 flex-wrap">
           {isAuthenticated ? '👋 Welcome Back to' : 'Welcome to'}
