@@ -58,10 +58,12 @@ body {
 /* Brand Gradient */
 .text-gradient {
   background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
-  -webkit-background-clip: text;
+  background-clip: text;              /* ✅ Standard syntax */
+  -webkit-background-clip: text;      /* ✅ WebKit-specific */
   -webkit-text-fill-color: transparent;
   display: inline-block;
 }
+
 
 /* Subtext Under Main Heading */
 .homepage-subtext {
