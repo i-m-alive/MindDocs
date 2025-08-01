@@ -1,8 +1,8 @@
-// src/pages/SummaryPage.js
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { getToken } from '../utils/auth';
 import logo from '../assets/logo.png';
+import jsPDF from 'jspdf'; // ✅ PDF generation library
 import './SummaryPage.css';
 
 function SummaryPage() {
@@ -14,6 +14,7 @@ function SummaryPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // 🧾 Fetch uploaded user documents on component mount
   useEffect(() => {
     const fetchDocuments = async () => {
       try {
@@ -28,6 +29,7 @@ function SummaryPage() {
     fetchDocuments();
   }, []);
 
+  // 📤 Submit form to generate summary
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -63,6 +65,40 @@ function SummaryPage() {
     }
   };
 
+  // 📥 Handle PDF download
+  const handleDownloadPDF = () => {
+    if (!summaryResult) return;
+
+    const doc = new jsPDF();
+
+    // 🖨️ Title
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('📌 Document Summary', 10, 20);
+
+    // 🧾 Meta Info
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`📄 Document: ${summaryResult.doc_name}`, 10, 35);
+    doc.text(`📂 Domain: ${summaryResult.domain}`, 10, 45);
+    doc.text(`🧮 Original Word Count: ${summaryResult.original_word_count}`, 10, 55);
+    doc.text(`✂️ Summary Word Count: ${summaryResult.summary_word_count}`, 10, 65);
+    doc.text(`⚖️ Compression Ratio: ${summaryResult.compression_ratio}`, 10, 75);
+
+    // 📝 Summary Content
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('📋 Summary:', 10, 90);
+
+    const summaryLines = doc.splitTextToSize(summaryResult.summary, 180);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(summaryLines, 10, 100);
+
+    // 💾 Save file
+    doc.save(`${summaryResult.doc_name}_summary.pdf`);
+  };
+
   return (
     <div className="summary-page container py-5" style={{ maxWidth: '850px' }}>
       <h2 className="text-center fw-bold mb-4 d-flex justify-content-center align-items-center gap-2 flex-wrap">
@@ -70,9 +106,13 @@ function SummaryPage() {
         <span>Document Summarization</span>
       </h2>
 
+      {/* 🔴 Error Message */}
       {error && <div className="alert alert-danger">{error}</div>}
+
+      {/* ✅ Success Message */}
       {success && <div className="alert alert-success">{success}</div>}
 
+      {/* 🔘 Form */}
       <form onSubmit={handleSubmit} className="themed-card p-4 mb-5">
         <div className="form-floating mb-3">
           <select
@@ -116,15 +156,17 @@ function SummaryPage() {
         </button>
       </form>
 
+      {/* 📋 Summary Output */}
       {summaryResult && (
         <div className="card themed-card shadow-sm border">
           <div className="card-header themed-header fw-bold fs-5">
             📌 Final Summary
           </div>
           <div className="card-body">
-            <div className="summary-box ">
+            <div className="summary-box">
               {summaryResult.summary}
             </div>
+
             <div className="summary-meta themed-card p-4 mt-4">
               <h6 className="fw-bold mt-4">📊 Summary Output</h6>
               <p><strong>📄 Document:</strong> <span className="text-info">{summaryResult.doc_name}</span></p>
@@ -132,6 +174,14 @@ function SummaryPage() {
               <p><strong>🧮 Original Word Count:</strong> {summaryResult.original_word_count}</p>
               <p><strong>✂️ Summary Word Count:</strong> {summaryResult.summary_word_count}</p>
               <p><strong>⚖️ Ratio:</strong> {summaryResult.compression_ratio}</p>
+
+              {/* ⬇️ Download Button */}
+              <button
+                onClick={handleDownloadPDF}
+                className="btn btn-success mt-3 fw-semibold rounded-pill"
+              >
+                📥 Download Summary as PDF
+              </button>
             </div>
           </div>
         </div>
