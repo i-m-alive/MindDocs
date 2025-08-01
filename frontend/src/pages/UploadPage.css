@@ -1,0 +1,33 @@
+/* Ensure feature cards are uniform */
+.feature-card {
+  border-radius: 16px;
+  background-color: rgba(255, 255, 255, 0.03);
+  color: var(--text-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  transition: all 0.3s ease-in-out;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+
+  /* ✅ Uniform size */
+  min-width: 220px;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Keep text centered */
+.feature-card .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Hover animation */
+.feature-card:hover {
+  transform: translateY(-6px);
+  background-color: rgba(127, 0, 255, 0.06);
+  box-shadow: 0 10px 25px rgba(127, 0, 255, 0.4);
+}
